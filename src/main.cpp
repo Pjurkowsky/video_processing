@@ -1,7 +1,13 @@
+#include <common.h>
+#include <cpu.h>
+#include <gpu.h>
 #include <iostream>
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
 
-  std::cout << "Witaj swiecie!" << std::endl;
+  common();
+  cpu();
+  gpu();
+  std::cout << "Hello from the main file" << std::endl;
   return 0;
 }
