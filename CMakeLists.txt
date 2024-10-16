@@ -3,9 +3,11 @@ cmake_minimum_required(VERSION 3.28)
 project(main)
 
 find_package(OpenCV REQUIRED)
-include_directories(${OpenCV_INCLUDE_DIRS})
-message(${OpenCV_INCLUDE_DIRS})
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
-add_executable(main src/main.cpp)
+add_executable(main)
+target_link_libraries(main ${OpenCV_LIBS} common gpu cpu)
 
-target_link_libraries(main ${OpenCV_LIBS})
+add_subdirectory(src)
+target_include_directories(
+  main PUBLIC ${OpenCV_INCLUDE_DIRS} libCommon/include/ libCpu/include/
+              libGpu/include/)
