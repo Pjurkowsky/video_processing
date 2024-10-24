@@ -1,0 +1,36 @@
+name: Clang Format Check
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  clang-format:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install clang-format
+        run: sudo apt-get install clang-format -y
+
+      - name: Check code format
+        run: |
+          # Find all C++ source/header files and format them
+          # Change the file extensions as per your project needs
+          find . -regex '.*\.\(cpp\|h\|hpp\|c\)' -exec clang-format -style=file -i {} \;
+
+      - name: Commit changes
+        run: |
+          git config --local user.name "GitHub Actions"
+          git config --local user.email "actions@github.com"
+          git diff --exit-code || (
+            git add . &&
+            git commit -m "Auto-format code using clang-format" &&
+            git push
+          )

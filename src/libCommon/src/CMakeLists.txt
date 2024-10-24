@@ -1,1 +1,1 @@
-target_sources(common PUBLIC ./common.cpp)
+target_sources(common PUBLIC ./common.cpp ./video.cpp)
