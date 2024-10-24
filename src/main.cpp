@@ -6,7 +6,6 @@
 
 int main(int argc, char** argv) {
 
-
   if (argc < 2) {
     std::cerr << "Usage: " << argv[0] << " <cpu/gpu> <path_to_video_file>"
               << std::endl;
