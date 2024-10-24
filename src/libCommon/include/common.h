@@ -1,6 +1,3 @@
-#ifndef COMMON_H
-#define COMMON_H
+#pragma once
 
 void common();
-
-#endif
