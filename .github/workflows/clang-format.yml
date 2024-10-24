@@ -16,13 +16,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Update
+        run: apt-get update
+
       - name: Install clang-format
-        run: sudo apt-get install clang-format -y
+        run: apt-get install git clang-format -y
 
       - name: Check code format
         run: |
-          # Find all C++ source/header files and format them
-          # Change the file extensions as per your project needs
           find . -regex '.*\.\(cpp\|h\|hpp\|c\)' -exec clang-format -style=file -i {} \;
 
       - name: Commit changes
