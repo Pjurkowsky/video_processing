@@ -1,5 +1,9 @@
 add_subdirectory(libCommon)
+
+if(USE_CUDA)
+    add_subdirectory(libGpu)
+endif()
+
 add_subdirectory(libCpu)
-add_subdirectory(libGpu)
 
 target_sources(main PUBLIC main.cpp)

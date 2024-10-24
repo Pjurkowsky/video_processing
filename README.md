@@ -22,6 +22,8 @@
 - Run the cmake generator
   - If you are running Linux or have exported the env variable on Windows, just `cmake ..`
   - If you did not export the env variable,  `cmake .. -DOpenCV_DIR="{path_to_opencv}\build\x64\vc15\lib"`
+  - If you have the CUDA toolkit installed and want to compile the both the CPU and GPU parts of the project, add `-DUSE_CUDA=YES`,
+    otherwise only the CPU part will be built, without requiring the green graphics card or the CUDA toolkit
 - Compile the project `cmake --build .`
 - Run the binary `./main` or `main.exe` for Linux/Windows respectively
 
