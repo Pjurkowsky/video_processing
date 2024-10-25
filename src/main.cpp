@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
   if (processor == "cpu") {
     cpu(video);
   } else if (processor == "gpu") {
-    gpu();
+    gpu(video);
   } else {
     std::cerr << argv[0] << ": Invalid option" << argv[1] << std::endl;
   }

@@ -15,7 +15,7 @@ add_executable(main)
 add_executable(cpu_main ./src/libCpu/src/main.cpp)
 
 if(USE_CUDA)
-  add_executable(gpu_main ./src/libGpu/src/main.cu)
+  add_executable(gpu_main ./src/libGpu/src/main.cpp)
   set_target_properties(gpu_main PROPERTIES CUDA_ARCHITECTURES "75")
   target_link_libraries(main ${OpenCV_LIBS} common gpu cpu)
   target_include_directories(main PUBLIC ${OpenCV_INCLUDE_DIRS} libCommon/include/ libCpu/include/ libGpu/include/)
