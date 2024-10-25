@@ -1,5 +1,4 @@
-#ifndef VIDEO_H
-#define VIDEO_H
+#pragma once
 
 #include <opencv2/opencv.hpp>
 #include <string>
@@ -29,5 +28,3 @@ class Video {
   bool loaded;
   cv::VideoCapture videoCapture;
 };
-
-#endif
