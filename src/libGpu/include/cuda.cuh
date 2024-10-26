@@ -1,3 +1,5 @@
 #include <iostream>
 
-__global__ void add(float* a, float* b);
+namespace cuda {
+__global__ void bgr_to_mono(uint8_t* frame, int height, int width);
+}
