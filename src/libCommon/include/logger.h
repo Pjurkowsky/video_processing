@@ -8,7 +8,7 @@
 #include <string>
 
 #define Log(level) Logger(__FILE__, __LINE__, level)
-#define LogTag(str, color) Logger(__FILE__, __LINE__, str, color)
+#define LogTag(str, level) Logger(__FILE__, __LINE__, str, level)
 
 enum LOG_LEVEL { INFO = 32, LOG = 35, WARNING = 33, ERROR = 31, DEBUG = 36, VERBOSE = 39 };
 
