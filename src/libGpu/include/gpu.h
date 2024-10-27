@@ -1,6 +1,7 @@
 #include <common.h>
+#include <logger.h>
+#include <video.h>
 #include <cuda.hpp>
-#include "video.h"
 
 namespace gpu {
 
