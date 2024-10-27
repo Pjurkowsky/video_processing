@@ -15,8 +15,7 @@ Logger::Logger(const char* file, int line) {
   time_t t = std::chrono::system_clock::to_time_t(now);
   stream << "\e[1;90m";
   stream << "[" << std::put_time(localtime(&t), "%H:%M:%S");
-  stream << "]" << std::setw(20) << std::left
-         << str + ":" + std::to_string(line) << " ";
+  stream << "]" << std::setw(20) << std::left << str + ":" + std::to_string(line) << " ";
   stream << "\e[0m";
 }
 Logger::Logger(const char* file, int line, std::string TAG, int color) {

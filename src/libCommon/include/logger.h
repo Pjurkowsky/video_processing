@@ -10,14 +10,7 @@
 #define Log(level) Logger(__FILE__, __LINE__, level)
 #define LogTag(str, color) Logger(__FILE__, __LINE__, str, color)
 
-enum LOG_LEVEL {
-  INFO = 32,
-  LOG = 35,
-  WARNING = 33,
-  ERROR = 31,
-  DEBUG = 36,
-  VERBOSE = 39
-};
+enum LOG_LEVEL { INFO = 32, LOG = 35, WARNING = 33, ERROR = 31, DEBUG = 36, VERBOSE = 39 };
 
 /* *
  * @brief Logger class to use instead of std::cout

@@ -11,8 +11,7 @@ void utill::benchmark(const std::function<void()>& f) {
   auto start = std::chrono::steady_clock::now();
   f();
   auto end = std::chrono::steady_clock::now();
-  std::cout << ((float)((end - start) / std::chrono::microseconds(1))) / 1000.0f
-            << " ms" << std::endl;
+  std::cout << ((float)((end - start) / std::chrono::microseconds(1))) / 1000.0f << " ms" << std::endl;
   ;
 }
 
