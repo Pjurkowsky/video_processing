@@ -7,11 +7,16 @@ void common() {
   std::cout << "Hello from the Common library" << std::endl;
 }
 
-void benchmark(const std::function<void()>& f) {
+void utill::benchmark(const std::function<void()>& f) {
   auto start = std::chrono::steady_clock::now();
   f();
   auto end = std::chrono::steady_clock::now();
-  std::cout << (end - start) / std::chrono::milliseconds(1) << " ms"
-            << std::endl;
+  std::cout << ((float)((end - start) / std::chrono::microseconds(1))) / 1000.0f << " ms" << std::endl;
+  ;
+}
+
+void utill::benchmark(std::string label, const std::function<void()>& f) {
+  std::cout << label << " ";
+  benchmark(f);
   ;
 }
