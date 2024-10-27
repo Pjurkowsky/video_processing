@@ -30,7 +30,7 @@ Logger::Logger(const char* file, int line, std::string TAG, int color) {
   stream << "\e[0m";
 
   stream << "\e[1;" << color << "m";
-  stream << std::left << str + ":" + std::to_string(line) << " ";
+  stream << std::left << std::setw(15) << str + ":" + std::to_string(line) << " ";
   stream << std::left << "[" << TAG << "] ";
 }
 
@@ -45,5 +45,5 @@ Logger::Logger(const char* file, int line, int color) {
   stream << "\e[0m";
 
   stream << "\e[1;" << color << "m";
-  stream << std::left << str + ":" + std::to_string(line) << " ";
+  stream << std::left << std::setw(15) << str + ":" + std::to_string(line) << " ";
 }

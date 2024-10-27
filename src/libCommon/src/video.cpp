@@ -1,5 +1,8 @@
 #include "video.h"
+#include <logger.h>
 #include <iostream>
+
+#define LOG(level) LogTag("VIDEO", level)
 
 Video::Video() : loaded(false) {}
 
@@ -15,12 +18,12 @@ bool Video::loadFile(const std::string& filePath) {
   videoCapture.open(filePath);
 
   if (!videoCapture.isOpened()) {
-    std::cerr << "Error: Could not load video file " << filePath << std::endl;
+    LOG(ERROR) << "Could not load video file " << filePath;
     loaded = false;
     return false;
   }
 
-  std::cout << "Video file loaded successfully: " << filePath << std::endl;
+  LOG(INFO) << "Video file loaded successfully: " << filePath;
   loaded = true;
   return true;
 }
@@ -31,13 +34,13 @@ cv::VideoCapture Video::getVideoCapture() {
 
 void Video::play() {
   if (!loaded || !videoCapture.isOpened()) {
-    std::cerr << "Error: Video not loaded properly!" << std::endl;
+    LOG(ERROR) << "Error: Video not loaded properly!";
     return;
   }
 
   double fps = videoCapture.get(cv::CAP_PROP_FPS);
   if (fps <= 0) {
-    std::cerr << "Error: Could not retrieve frame rate." << std::endl;
+    LOG(ERROR) << "Error: Could not retrieve frame rate.";
     return;
   }
 
@@ -48,7 +51,7 @@ void Video::play() {
     videoCapture >> frame;
 
     if (frame.empty()) {
-      std::cout << "End of video." << std::endl;
+      LOG(INFO) << "End of video.";
       break;
     }
 
@@ -70,7 +73,7 @@ cv::Mat Video::getFrame(int frameNumber) {
   videoCapture >> frame;
 
   if (frame.empty()) {
-    std::cerr << "Error: Could not retrieve frame " << frameNumber << std::endl;
+    LOG(ERROR) << "Could not retrieve frame " << frameNumber;
   }
 
   return frame;
@@ -79,7 +82,7 @@ cv::Mat Video::getFrame(int frameNumber) {
 void Video::displayFrame(cv::Mat frame) {
 
   if (frame.empty()) {
-    std::cerr << "Error: Could not retrieve frame" << std::endl;
+    LOG(ERROR) << "Could not retrieve frame";
     return;
   }
 
