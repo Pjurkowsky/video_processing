@@ -31,7 +31,13 @@ int main(int argc, char** argv) {
   if (processor == "cpu") {
     cpu(video);
   } else if (processor == "gpu") {
-    gpu::gpu(video);
+    if (argc < 4) {
+      LOG(ERROR) << "Usage: " << argv[1] << " <cpu/gpu/both> <path_to_video_file> <operation> <batch_size>";
+      return 1;
+    }
+    std::string operation = argv[3];
+    int batch_size = std::stoi(argv[4]);
+    gpu::gpu(video, operation, batch_size);
   } else {
     LOG(ERROR) << argv[0] << ": Invalid option" << argv[1];
     return 1;
