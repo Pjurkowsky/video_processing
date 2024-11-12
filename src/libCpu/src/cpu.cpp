@@ -2,11 +2,13 @@
 
 std::mutex queueMutex;
 std::condition_variable queueCV;
+std::condition_variable writeCV;
 bool finishedReading = false;
 
-void processResizeFrames(std::queue<cv::Mat>& frameQueue, cv::VideoWriter& writer, double scaleFactor) {
+void processResizeFrames(std::queue<std::pair<int, cv::Mat>>& frameQueue, std::map<int, cv::Mat>& processedFrames,
+                         double scaleFactor) {
   while (true) {
-    cv::Mat frame;
+    std::pair<int, cv::Mat> framePair;
     {
       std::unique_lock<std::mutex> lock(queueMutex);
       queueCV.wait(lock, [&]() {
@@ -15,24 +17,28 @@ void processResizeFrames(std::queue<cv::Mat>& frameQueue, cv::VideoWriter& write
 
       if (frameQueue.empty() && finishedReading)
         break;
-      frame = frameQueue.front();
+
+      framePair = frameQueue.front();
       frameQueue.pop();
     }
 
+    int frameIndex = framePair.first;
     cv::Mat resizedFrame;
-    cv::resize(frame, resizedFrame, cv::Size(frame.cols * scaleFactor, frame.rows * scaleFactor), 0, 0,
+    cv::resize(framePair.second, resizedFrame,
+               cv::Size(framePair.second.cols * scaleFactor, framePair.second.rows * scaleFactor), 0, 0,
                cv::INTER_LINEAR);
 
     {
-      std::lock_guard<std::mutex> writerLock(queueMutex);
-      writer.write(resizedFrame);
+      std::lock_guard<std::mutex> lock(queueMutex);
+      processedFrames[frameIndex] = resizedFrame;
     }
+    writeCV.notify_one();
   }
 }
 
-void processMonoFrames(std::queue<cv::Mat>& frameQueue, cv::VideoWriter& writer) {
+void processMonoFrames(std::queue<std::pair<int, cv::Mat>>& frameQueue, std::map<int, cv::Mat>& processedFrames) {
   while (true) {
-    cv::Mat frame;
+    std::pair<int, cv::Mat> framePair;
     {
       std::unique_lock<std::mutex> lock(queueMutex);
       queueCV.wait(lock, [&]() {
@@ -41,17 +47,20 @@ void processMonoFrames(std::queue<cv::Mat>& frameQueue, cv::VideoWriter& writer)
 
       if (frameQueue.empty() && finishedReading)
         break;
-      frame = frameQueue.front();
+
+      framePair = frameQueue.front();
       frameQueue.pop();
     }
 
+    int frameIndex = framePair.first;
     cv::Mat monoFrame;
-    cv::cvtColor(frame, monoFrame, cv::COLOR_BGR2GRAY);
+    cv::cvtColor(framePair.second, monoFrame, cv::COLOR_BGR2GRAY);
 
     {
-      std::lock_guard<std::mutex> writerLock(queueMutex);
-      writer.write(monoFrame);
+      std::lock_guard<std::mutex> lock(queueMutex);
+      processedFrames[frameIndex] = monoFrame;
     }
+    writeCV.notify_one();
   }
 }
 
@@ -83,17 +92,23 @@ void cpu(Video video, std::string filter) {
     return;
   }
 
-  std::queue<cv::Mat> frameQueue;
+  std::queue<std::pair<int, cv::Mat>> frameQueue;
+  std::map<int, cv::Mat> processedFrames;
+  int nextFrameToWrite = 0;
   int numThreads = std::thread::hardware_concurrency();
   std::vector<std::thread> threads;
 
   if (filter == "mono") {
     for (int i = 0; i < numThreads; ++i) {
-      threads.emplace_back(processMonoFrames, std::ref(frameQueue), std::ref(outputVideo));
+      threads.emplace_back([&]() {
+        processMonoFrames(frameQueue, processedFrames);
+      });
     }
   } else if (filter == "resize") {
     for (int i = 0; i < numThreads; ++i) {
-      threads.emplace_back(processResizeFrames, std::ref(frameQueue), std::ref(outputVideo), scaleFactor);
+      threads.emplace_back([&]() {
+        processResizeFrames(frameQueue, processedFrames, scaleFactor);
+      });
     }
   }
 
@@ -105,17 +120,33 @@ void cpu(Video video, std::string filter) {
 
       {
         std::lock_guard<std::mutex> lock(queueMutex);
-        frameQueue.push(frame);
+        frameQueue.push({i, frame});
       }
       queueCV.notify_one();
     }
-  });
 
-  {
-    std::lock_guard<std::mutex> lock(queueMutex);
-    finishedReading = true;
-  }
-  queueCV.notify_all();
+    {
+      std::lock_guard<std::mutex> lock(queueMutex);
+      finishedReading = true;
+    }
+    queueCV.notify_all();
+
+    std::thread writerThread([&]() {
+      while (nextFrameToWrite < totalFrames - 1) {
+        std::unique_lock<std::mutex> lock(queueMutex);
+        writeCV.wait(lock, [&]() {
+          return processedFrames.count(nextFrameToWrite) > 0 || finishedReading;
+        });
+
+        while (processedFrames.count(nextFrameToWrite) > 0) {
+          outputVideo.write(processedFrames[nextFrameToWrite]);
+          processedFrames.erase(nextFrameToWrite);
+          ++nextFrameToWrite;
+        }
+      }
+    });
+    writerThread.join();
+  });
 
   for (auto& t : threads) {
     t.join();
