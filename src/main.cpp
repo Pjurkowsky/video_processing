@@ -29,7 +29,12 @@ int main(int argc, char** argv) {
   }
 
   if (processor == "cpu") {
-    cpu(video);
+    if (argc < 4) {
+      LOG(ERROR) << "Usage: <cpu/gpu> <path_to_video_file> <filter>";
+      return 1;
+    }
+    std::string filter = argv[3];
+    cpu(video, filter);
   } else if (processor == "gpu") {
     if (argc < 4) {
       LOG(ERROR) << "Usage: " << argv[1] << " <cpu/gpu/both> <path_to_video_file> <operation> <batch_size>";
