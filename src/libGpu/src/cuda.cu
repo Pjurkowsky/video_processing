@@ -30,11 +30,9 @@ void gpu::bgr_to_mono(uint8_t* frame, int height, int width) {
   cudaFree(buffer);
 }
 
-void gpu::bgr_to_mono(uint8_t* frames, int batch_size, int height, int width) {
-  uint8_t* buffer;
+void gpu::bgr_to_mono(uint8_t* frames, int batch_size, int height, int width, uint8_t* buffer) {
   int frame_size = sizeof(uint8_t) * width * height * 3;
   int total_size = frame_size * batch_size;
-  cudaMalloc(&buffer, total_size);
 
     cudaMemcpy(buffer, frames, total_size, cudaMemcpyKind::cudaMemcpyHostToDevice);
     for (int i = 0; i < batch_size; i++) {
@@ -43,19 +41,20 @@ void gpu::bgr_to_mono(uint8_t* frames, int batch_size, int height, int width) {
     }
     cudaDeviceSynchronize();
     cudaMemcpy(frames, buffer, total_size, cudaMemcpyKind::cudaMemcpyDeviceToHost);
-  
+}
+
+void gpu::malloc_memory(uint8_t** src_buffer, int buffer_size) {
+  cudaMalloc(src_buffer, buffer_size);
+}
+
+void gpu::free_memory(uint8_t* buffer) {
   cudaFree(buffer);
 }
 
-void gpu::resize(uint8_t* frames, int batch_size, int src_height, int src_width, int dst_height, int dst_width, uint8_t* resized_frames) {
-    uint8_t* src_buffer;
-    uint8_t* dst_buffer;
+void gpu::resize(uint8_t* frames, int batch_size, int src_height, int src_width, int dst_height, int dst_width, uint8_t* resized_frames, uint8_t* src_buffer, uint8_t* dst_buffer) {
     int frame_size = sizeof(uint8_t) * src_width * src_height * 3;
     int resized_frame_size = sizeof(uint8_t) * dst_width * dst_height * 3;
     int total_size = frame_size * batch_size;
-
-    cudaMalloc(&src_buffer, total_size);
-    cudaMalloc(&dst_buffer, resized_frame_size * batch_size);
 
     cudaMemcpy(src_buffer, frames, total_size, cudaMemcpyHostToDevice);
 
@@ -70,9 +69,6 @@ void gpu::resize(uint8_t* frames, int batch_size, int src_height, int src_width,
     cudaDeviceSynchronize();
 
     cudaMemcpy(resized_frames, dst_buffer, resized_frame_size * batch_size, cudaMemcpyDeviceToHost);
-
-    cudaFree(src_buffer);
-    cudaFree(dst_buffer);
 }
 
 // nearest neighbour algorithm
