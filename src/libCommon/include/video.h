@@ -4,12 +4,12 @@
 #include <string>
 
 class Video {
- public:
+public:
   Video();
 
   ~Video();
 
-  bool loadFile(const std::string& filePath);
+  bool loadFile(const std::string &filePath);
 
   cv::VideoCapture getVideoCapture();
 
@@ -19,12 +19,13 @@ class Video {
 
   void displayFrame(cv::Mat frame);
 
-  cv::Mat applyBlur(const cv::Mat& frame);
+  cv::Mat applyBlur(const cv::Mat &frame);
 
   bool isLoaded() const;
 
- private:
   std::string filePath;
+
+private:
   bool loaded;
   cv::VideoCapture videoCapture;
 };

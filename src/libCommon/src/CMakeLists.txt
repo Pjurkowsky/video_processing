@@ -1,1 +1,1 @@
-target_sources(common PUBLIC ./common.cpp ./video.cpp ./logger.cpp)
+target_sources(common PUBLIC ./common.cpp ./video.cpp ./logger.cpp ./argparse.cpp)

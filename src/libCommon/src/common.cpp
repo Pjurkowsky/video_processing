@@ -15,11 +15,11 @@ void common() {
   std::cout << "Hello from the Common library" << std::endl;
 }
 
-void utill::benchmark(const std::function<void()>& f) {
-  benchmark("", f);
+int utill::benchmark(const std::function<void()>& f) {
+  return benchmark("", f);
 }
 
-void utill::benchmark(std::string label, const std::function<void()>& f) {
+int utill::benchmark(std::string label, const std::function<void()>& f) {
   auto start = std::chrono::steady_clock::now();
   try {
     f();
@@ -29,7 +29,7 @@ void utill::benchmark(std::string label, const std::function<void()>& f) {
   }
   auto end = std::chrono::steady_clock::now();
   TaggedLogStream(label, LEVEL_LOG) << ((float)((end - start) / std::chrono::microseconds(1))) / 1000.0f << " ms";
-  ;
+  return (end - start) / std::chrono::milliseconds(1);
 }
 
 int utill::silent_benchmark(const std::function<void()>& f) {
