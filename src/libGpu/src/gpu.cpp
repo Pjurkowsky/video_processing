@@ -2,8 +2,15 @@
 #include <gpu.h>
 #include <logger.h>
 #include <opencv2/core/hal/interface.h>
+#include <chrono>
 #include <cstdlib>
 #include <cstring>
+
+#define LOG(level) TaggedLogStream("GPU", level)
+
+#define ERROR_LOG LOG(LEVEL_ERROR)
+#define INFO_LOG LOG(LEVEL_INFO)
+#define WARNING_LOG LOG(LEVEL_WARNING)
 
 void gpu::gpu(Video video) {
   const int frame_count = 60;
@@ -31,6 +38,8 @@ void gpu::gpu(Video video, std::string operation, int batch_size) {
   cv::Mat frame = video.getFrame(0);
   cv::Size size = frame.size();
   int frame_mem_size = size.height * size.width * 3 * sizeof(uint8_t);
+  int total_time = 0;
+  total_time = utill::silent_benchmark([]() {});
 
   auto capture = video.getVideoCapture();
   capture.set(cv::CAP_PROP_POS_FRAMES, 0);
@@ -48,6 +57,7 @@ void gpu::gpu(Video video, std::string operation, int batch_size) {
         "output_video.mp4", cv::VideoWriter::fourcc('X', '2', '6', '4'), fps, cv::Size(dst_width, dst_height));
 
     for (int i = 0; i < frame_count; i += batch_size) {
+      INFO_LOG << "Frames " << i << "/" << frame_count;
       int current_batch_size = std::min(batch_size, frame_count - i);
 
       std::vector<cv::Mat> frames_batch;
@@ -57,8 +67,7 @@ void gpu::gpu(Video video, std::string operation, int batch_size) {
         frames_batch.push_back(frame);
         std::memcpy(batch_buffer + j * frame_mem_size, frame.data, frame_mem_size);
       }
-
-      utill::benchmark("GPU:", [&]() {
+      total_time += utill::silent_benchmark([&]() {
         gpu::resize(batch_buffer,
                     current_batch_size,
                     size.height,
@@ -109,4 +118,5 @@ void gpu::gpu(Video video, std::string operation, int batch_size) {
     gpu::free_memory(buffer);
     videoWriter.release();
   }
+  LOG(LEVEL_LOG) << "Applying a transform took " << total_time << "ms";
 }
