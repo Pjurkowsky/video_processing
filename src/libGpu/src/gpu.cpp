@@ -60,11 +60,8 @@ void gpu::gpu(Video video, std::string operation, int batch_size) {
       INFO_LOG << "Frames " << i << "/" << frame_count;
       int current_batch_size = std::min(batch_size, frame_count - i);
 
-      std::vector<cv::Mat> frames_batch;
-
       for (int j = 0; j < current_batch_size; ++j) {
         capture >> frame;
-        frames_batch.push_back(frame);
         std::memcpy(batch_buffer + j * frame_mem_size, frame.data, frame_mem_size);
       }
       total_time += utill::silent_benchmark([&]() {
@@ -98,10 +95,8 @@ void gpu::gpu(Video video, std::string operation, int batch_size) {
     for (int i = 0; i < frame_count; i += batch_size) {
       int current_batch_size = std::min(batch_size, frame_count - i);
 
-      std::vector<cv::Mat> frames_batch;
       for (int j = 0; j < current_batch_size; ++j) {
         capture >> frame;
-        frames_batch.push_back(frame);
         std::memcpy(batch_buffer + j * frame_mem_size, frame.data, frame_mem_size);
       }
 
@@ -110,8 +105,8 @@ void gpu::gpu(Video video, std::string operation, int batch_size) {
       });
 
       for (int j = 0; j < current_batch_size; ++j) {
-        std::memcpy(frames_batch[j].data, batch_buffer + j * frame_mem_size, frame_mem_size);
-        videoWriter.write(frames_batch[j]);
+        cv::Mat processed_frame(size.height, size.width, CV_8UC3, batch_buffer + j * frame_mem_size);
+        videoWriter.write(processed_frame);
       }
     }
     delete[] batch_buffer;

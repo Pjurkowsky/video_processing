@@ -12,17 +12,16 @@
 #define WARNING_LOG LOG(LEVEL_WARNING)
 
 __global__ void cuda::bgr_to_mono(uint8_t* frame, int height, int width) {
-  int index = blockIdx.x * blockDim.x + threadIdx.x;
-  int stride = blockDim.x * gridDim.x;
-  for (int row = index; row < height; row += stride) {
-    for (int col = 0; col < width; col++) {
-      int index = 3 * (row * width + col);
-      uint8_t avg = (frame[index] + frame[index + 1] + frame[index + 2]) / 3;
-      frame[index] = avg;
-      frame[index + 1] = avg;
-      frame[index + 2] = avg;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (row < height && col < width) {
+        int index = 3 * (row * width + col);
+        uint8_t avg = (frame[index] + frame[index + 1] + frame[index + 2]) / 3;
+        frame[index] = avg;
+        frame[index + 1] = avg;
+        frame[index + 2] = avg;
     }
-  }
 }
 
 void gpu::bgr_to_mono(uint8_t* frame, int height, int width) {
@@ -41,13 +40,15 @@ void gpu::bgr_to_mono(uint8_t* frames, int batch_size, int height, int width, ui
   int frame_size = sizeof(uint8_t) * width * height * 3;
   int total_size = frame_size * batch_size;
 
-  cudaMemcpy(buffer, frames, total_size, cudaMemcpyKind::cudaMemcpyHostToDevice);
-  for (int i = 0; i < batch_size; i++) {
-    uint8_t* frame_ptr = buffer + i * frame_size;
-    cuda::bgr_to_mono<<<16, 256>>>(frame_ptr, height, width);
-  }
-  cudaDeviceSynchronize();
-  cudaMemcpy(frames, buffer, total_size, cudaMemcpyKind::cudaMemcpyDeviceToHost);
+    cudaMemcpy(buffer, frames, total_size, cudaMemcpyKind::cudaMemcpyHostToDevice);
+    for (int i = 0; i < batch_size; i++) {
+      uint8_t* frame_ptr = buffer + i * frame_size;
+      dim3 block(16, 16);
+      dim3 grid((width + 15) / 16, (height + 15) / 16);
+      cuda::bgr_to_mono<<<grid, block>>>(frame_ptr, height, width);
+    }
+    cudaDeviceSynchronize();
+    cudaMemcpy(frames, buffer, total_size, cudaMemcpyKind::cudaMemcpyDeviceToHost);
 }
 
 void gpu::malloc_memory(uint8_t** src_buffer, int buffer_size) {
@@ -80,21 +81,20 @@ void gpu::resize(uint8_t* frames, int batch_size, int src_height, int src_width,
 }
 
 // nearest neighbour algorithm
-__global__ void cuda::resize_kernel(uint8_t* src_frame, uint8_t* dst_frame, int src_height, int src_width,
-                                    int dst_height, int dst_width) {
-  int i = blockDim.y * blockIdx.y + threadIdx.y;
-  int j = blockDim.x * blockIdx.x + threadIdx.x;
+__global__ void cuda::resize_kernel(uint8_t* src_frame, uint8_t* dst_frame, int src_height, int src_width, int dst_height, int dst_width) {
+    int row = blockDim.y * blockIdx.y + threadIdx.y;
+    int col = blockDim.x * blockIdx.x + threadIdx.x;
 
   int channel = 3;
 
-  if (i < dst_height && j < dst_width) {
-    int iIn = i * src_height / dst_height;
-    int jIn = j * src_width / dst_width;
+    if (row < dst_height && col < dst_width) {
+        int rowIn = row * src_height / dst_height;
+        int colIn = col * src_width / dst_width;
 
-    dst_frame[(i * dst_width + j) * channel + 0] = src_frame[(iIn * src_width + jIn) * channel + 0];
-    dst_frame[(i * dst_width + j) * channel + 1] = src_frame[(iIn * src_width + jIn) * channel + 1];
-    dst_frame[(i * dst_width + j) * channel + 2] = src_frame[(iIn * src_width + jIn) * channel + 2];
-  }
+        dst_frame[(row * dst_width + col) * channel + 0] = src_frame[(rowIn * src_width + colIn) * channel + 0];
+        dst_frame[(row * dst_width + col) * channel + 1] = src_frame[(rowIn * src_width + colIn) * channel + 1];
+        dst_frame[(row * dst_width + col) * channel + 2] = src_frame[(rowIn * src_width + colIn) * channel + 2];
+    }
 }
 
 void gpu::init() {
