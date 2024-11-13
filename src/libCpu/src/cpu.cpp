@@ -24,8 +24,11 @@ void processResizeFrames(std::queue<std::pair<int, cv::Mat>>& frameQueue, std::m
 
     int frameIndex = framePair.first;
     cv::Mat resizedFrame;
-    cv::resize(framePair.second, resizedFrame,
-               cv::Size(framePair.second.cols * scaleFactor, framePair.second.rows * scaleFactor), 0, 0,
+    cv::resize(framePair.second,
+               resizedFrame,
+               cv::Size(framePair.second.cols * scaleFactor, framePair.second.rows * scaleFactor),
+               0,
+               0,
                cv::INTER_LINEAR);
 
     {
