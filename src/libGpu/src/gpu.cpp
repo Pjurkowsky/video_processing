@@ -68,9 +68,9 @@ void gpu::gpu(Video video, std::string operation, int batch_size) {
     uint8_t *resized_batch_buffer =
         new uint8_t[batch_size * dst_height * dst_width * 3 * sizeof(uint8_t)];
 
-    // cv::VideoWriter videoWriter("output_video.mp4",
-    //                             cv::VideoWriter::fourcc('X', '2', '6', '4'),
-    //                             fps, cv::Size(dst_width, dst_height));
+    cv::VideoWriter videoWriter("output_video.mp4",
+                                cv::VideoWriter::fourcc('X', '2', '6', '4'),
+                                fps, cv::Size(dst_width, dst_height));
 
     cv::Ptr<cv::cudacodec::VideoWriter> cudaVideoWriter;
     cv::Ptr<cv::cudacodec::VideoReader> cudaVideoReader;
@@ -83,10 +83,9 @@ void gpu::gpu(Video video, std::string operation, int batch_size) {
 
       read_time += utill::silent_benchmark([&]() {
         for (int j = 0; j < current_batch_size; ++j) {
-          cv::cuda::GpuMat gpuFrame;
-          cudaVideoReader->nextFrame(gpuFrame);
-          gpu::copyDeviceDevice(gpuFrame.data, src_buffer + j * frame_mem_size,
-                                frame_mem_size);
+          capture >> frame;
+          std::memcpy(batch_buffer + j * frame_mem_size, frame.data,
+                      frame_mem_size);
         }
       });
       total_time += utill::silent_benchmark([&]() {
@@ -107,10 +106,7 @@ void gpu::gpu(Video video, std::string operation, int batch_size) {
           cv::cuda::GpuMat resized_frame(dst_height, dst_width, CV_8UC3,
                                          dst_buffer +
                                              j * dst_height * dst_width * 3);
-          // cv::cuda::GpuMat frame_gpu;
-          // frame_gpu.upload(resized_frame);
           cudaVideoWriter->write(resized_frame);
-          // videoWriter.write(resized_frame);
         }
       });
     }
