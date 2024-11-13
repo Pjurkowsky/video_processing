@@ -7,10 +7,17 @@
 #include <sstream>
 #include <string>
 
-#define Log(level) Logger(__FILE__, __LINE__, level)
-#define LogTag(str, level) Logger(__FILE__, __LINE__, str, level)
+#define LogStream(level) utill::DestructorLogger(__FILE__, __LINE__, level)
+#define TaggedLogStream(str, level) utill::DestructorLogger(__FILE__, __LINE__, str, level)
 
-enum LOG_LEVEL { INFO = 32, LOG = 35, WARNING = 33, ERROR = 31, DEBUG = 36, VERBOSE = 39 };
+enum LOG_LEVEL {
+  LEVEL_INFO = 32,
+  LEVEL_LOG = 35,
+  LEVEL_WARNING = 33,
+  LEVEL_ERROR = 31,
+  LEVEL_DEBUG = 36,
+  LEVEL_VERBOSE = 39
+};
 
 /* *
  * @brief Logger class to use instead of std::cout
@@ -28,7 +35,8 @@ enum LOG_LEVEL { INFO = 32, LOG = 35, WARNING = 33, ERROR = 31, DEBUG = 36, VERB
  * LOG(INFO) << "Message"
  *
  */
-class Logger {
+namespace utill {
+class DestructorLogger {
  public:
   static bool logs_enabled;
   static void disable_logs() {
@@ -38,17 +46,17 @@ class Logger {
     logs_enabled = true;
   }
   static std::function<void(std::string)> log_func;
-  Logger(const char* file, int line);
-  Logger(const char* file, int line, std::string TAG, int color);
-  Logger(const char* file, int line, int color);
+  DestructorLogger(const char* file, int line);
+  DestructorLogger(const char* file, int line, std::string TAG, int color);
+  DestructorLogger(const char* file, int line, int color);
 
   template <typename T>
-  Logger& operator<<(const T& value) {
+  DestructorLogger& operator<<(const T& value) {
     stream << value << " ";
     return *this;
   }
 
-  ~Logger() {
+  ~DestructorLogger() {
     stream << std::endl;
     if (logs_enabled) {
       stream << "\e[0m";
@@ -60,3 +68,4 @@ class Logger {
  private:
   std::ostringstream stream;
 };
+}  // namespace utill

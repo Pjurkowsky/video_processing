@@ -4,3 +4,4 @@ out/
 opencv
 .vscode
 .cache
+test_resources/

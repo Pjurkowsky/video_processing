@@ -2,12 +2,13 @@
 
 #include <iomanip>
 
-bool Logger::logs_enabled = true;
-std::function<void(std::string)> Logger::log_func = [](std::string s) {
+namespace utill {
+bool DestructorLogger::logs_enabled = true;
+std::function<void(std::string)> DestructorLogger::log_func = [](std::string s) {
   std::cerr << s;
 };
 
-Logger::Logger(const char* file, int line) {
+DestructorLogger::DestructorLogger(const char* file, int line) {
   std::string str{file};
 
   str = str.substr(str.find_last_of('/') + 1);
@@ -18,7 +19,7 @@ Logger::Logger(const char* file, int line) {
   stream << "]" << std::setw(20) << std::left << str + ":" + std::to_string(line) << " ";
   stream << "\e[0m";
 }
-Logger::Logger(const char* file, int line, std::string TAG, int color) {
+DestructorLogger::DestructorLogger(const char* file, int line, std::string TAG, int color) {
   std::string str{file};
 
   str = str.substr(str.find_last_of('/') + 1);
@@ -33,7 +34,7 @@ Logger::Logger(const char* file, int line, std::string TAG, int color) {
   stream << std::left << "[" << TAG << "] ";
 }
 
-Logger::Logger(const char* file, int line, int color) {
+DestructorLogger::DestructorLogger(const char* file, int line, int color) {
   std::string str{file};
 
   str = str.substr(str.find_last_of('/') + 1);
@@ -46,3 +47,4 @@ Logger::Logger(const char* file, int line, int color) {
   stream << "\e[1;" << color << "m";
   stream << std::left << std::setw(15) << str + ":" + std::to_string(line) << " ";
 }
+}  // namespace utill
