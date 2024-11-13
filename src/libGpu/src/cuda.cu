@@ -52,8 +52,6 @@ void gpu::bgr_to_mono(uint8_t *frames, int batch_size, int height, int width,
     cuda::bgr_to_mono<<<grid, block>>>(frame_ptr, height, width);
   }
   cudaDeviceSynchronize();
-  cudaMemcpy(frames, buffer, total_size,
-             cudaMemcpyKind::cudaMemcpyDeviceToHost);
 }
 
 void gpu::malloc_memory(uint8_t **src_buffer, int buffer_size) {
