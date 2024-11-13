@@ -7,5 +7,5 @@
 #include <cstring>
 
 void gpu::gpu(Video video, std::string operation, int batch_size) {
-  LogTag("GPU STUB", WARNING) << "Calls to libGpu without USE_CUDA result in no-ops";
+  TaggedLogStream("GPU STUB", LEVEL_WARNING) << "Calls to libGpu without USE_CUDA result in no-ops";
 }

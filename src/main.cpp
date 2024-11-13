@@ -30,12 +30,14 @@ int main(int argc, char** argv) {
   }
   if (processor == "cpu") {
     if (argc < 4) {
-      LOG(LEVEL_ERROR) << "Usage: <cpu/gpu> <path_to_video_file> <filter>";
+      LOG(LEVEL_ERROR) << "Usage: <cpu/gpu> <path_to_video_file> <filter> <batch_size>";
       return 1;
     }
     std::string filter = argv[3];
-    utill::benchmark("CPU", [&]() {
-      cpu(video, filter);
+    int batchSize = std::stoi(argv[4]);
+    std::cout << "CPU: ";
+    utill::benchmark([&]() {
+      cpu(video, filter, batchSize);
     });
   } else if (processor == "gpu") {
     if (argc < 4) {
@@ -44,7 +46,7 @@ int main(int argc, char** argv) {
     }
     std::string operation = argv[3];
     int batch_size = std::stoi(argv[4]);
-    utill::benchmark("CPU", [&]() {
+    utill::benchmark("GPU:", [&]() {
       gpu::gpu(video, operation, batch_size);
     });
   } else {
