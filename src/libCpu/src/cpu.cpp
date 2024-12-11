@@ -1,19 +1,23 @@
 #include "cpu.h"
+#include "logger.h"
 
 std::mutex queueMutex;
 std::mutex processedFramesMutex;
 std::condition_variable queueCV;
 bool finishedReading = false;
 
-void processResizeFrames(std::queue<std::pair<int, cv::Mat>>& frameQueue, std::map<int, cv::Mat>& processedFrames,
-                         double scaleFactor) {
+#define LOG TaggedLogStream("CPU", LEVEL_INFO)
+
+void processResizeFrames(std::queue<std::pair<int, cv::Mat>> &frameQueue,
+                         std::map<int, cv::Mat> &processedFrames,
+                         double scaleFactor, int width, int height) {
+
   while (true) {
     std::pair<int, cv::Mat> framePair;
     {
       std::unique_lock<std::mutex> lock(queueMutex);
-      queueCV.wait(lock, [&]() {
-        return !frameQueue.empty() || finishedReading;
-      });
+      queueCV.wait(lock,
+                   [&]() { return !frameQueue.empty() || finishedReading; });
 
       if (frameQueue.empty() && finishedReading)
         break;
@@ -21,14 +25,9 @@ void processResizeFrames(std::queue<std::pair<int, cv::Mat>>& frameQueue, std::m
       framePair = frameQueue.front();
       frameQueue.pop();
     }
-
     int frameIndex = framePair.first;
     cv::Mat resizedFrame;
-    cv::resize(framePair.second,
-               resizedFrame,
-               cv::Size(framePair.second.cols * scaleFactor, framePair.second.rows * scaleFactor),
-               0,
-               0,
+    cv::resize(framePair.second, resizedFrame, cv::Size(width, height), 0, 0,
                cv::INTER_LINEAR);
 
     {
@@ -38,14 +37,14 @@ void processResizeFrames(std::queue<std::pair<int, cv::Mat>>& frameQueue, std::m
   }
 }
 
-void processMonoFrames(std::queue<std::pair<int, cv::Mat>>& frameQueue, std::map<int, cv::Mat>& processedFrames) {
+void processMonoFrames(std::queue<std::pair<int, cv::Mat>> &frameQueue,
+                       std::map<int, cv::Mat> &processedFrames) {
   while (true) {
     std::pair<int, cv::Mat> framePair;
     {
       std::unique_lock<std::mutex> lock(queueMutex);
-      queueCV.wait(lock, [&]() {
-        return !frameQueue.empty() || finishedReading;
-      });
+      queueCV.wait(lock,
+                   [&]() { return !frameQueue.empty() || finishedReading; });
 
       if (frameQueue.empty() && finishedReading)
         break;
@@ -65,7 +64,8 @@ void processMonoFrames(std::queue<std::pair<int, cv::Mat>>& frameQueue, std::map
   }
 }
 
-void cpu(Video video, std::string filter, int batchSize) {
+void cpu::cpu(Video video, utill::filter filter, int batchSize, std::string out,
+              int width, int height) {
   int totalFrames = video.getVideoCapture().get(cv::CAP_PROP_FRAME_COUNT);
   double fps = video.getVideoCapture().get(cv::CAP_PROP_FPS);
 
@@ -79,16 +79,18 @@ void cpu(Video video, std::string filter, int batchSize) {
   }
 
   double scaleFactor = 0.5;
-  if (filter == "mono") {
+  if (filter == utill::MONO) {
     cv::cvtColor(frame, frame, cv::COLOR_BGR2GRAY);
-  } else if (filter == "resize") {
-    cv::resize(frame, frame, cv::Size(frame.cols * scaleFactor, frame.rows * scaleFactor), 0, 0, cv::INTER_LINEAR);
+  } else if (filter == utill::RESIZE) {
+    cv::resize(frame, frame, cv::Size(width, height), 0, 0, cv::INTER_LINEAR);
   }
 
   bool isMono = frame.channels() == 1;
-  outputVideo.open("output_video.mp4", cv::VideoWriter::fourcc('a', 'v', 'c', '1'), fps, frame.size(), !isMono);
+  outputVideo.open(out, cv::VideoWriter::fourcc('a', 'v', 'c', '1'), fps,
+                   frame.size(), !isMono);
   if (!outputVideo.isOpened()) {
-    std::cerr << "Could not open the output video for write: output_video.mp4" << std::endl;
+    std::cerr << "Could not open the output video for write: " << out
+              << std::endl;
     return;
   }
 
@@ -107,16 +109,16 @@ void cpu(Video video, std::string filter, int batchSize) {
     std::vector<std::thread> threads;
 
     finishedReading = false;
-    if (filter == "mono") {
+    if (filter == utill::MONO) {
       for (int i = 0; i < numThreads; ++i) {
-        threads.emplace_back([&]() {
-          processMonoFrames(frameQueue, processedFrames);
-        });
+        threads.emplace_back(
+            [&]() { processMonoFrames(frameQueue, processedFrames); });
       }
-    } else if (filter == "resize") {
+    } else if (filter == utill::RESIZE) {
       for (int i = 0; i < numThreads; ++i) {
         threads.emplace_back([&]() {
-          processResizeFrames(frameQueue, processedFrames, scaleFactor);
+          processResizeFrames(frameQueue, processedFrames, scaleFactor, width,
+                              height);
         });
       }
     }
@@ -126,7 +128,7 @@ void cpu(Video video, std::string filter, int batchSize) {
       finishedReading = true;
     }
     queueCV.notify_all();
-    for (auto& t : threads) {
+    for (auto &t : threads) {
       t.join();
     }
 

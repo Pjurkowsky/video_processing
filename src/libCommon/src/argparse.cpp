@@ -4,6 +4,7 @@
 #include <string>
 
 #define ERROR_LOG TaggedLogStream("Argument Parser", LEVEL_ERROR)
+#define LOG TaggedLogStream("Argument Parser", LEVEL_LOG)
 namespace utill {
 
 int parse_cmd_args(int argc, char **argv, program_config &config) {
@@ -66,7 +67,7 @@ int parse_cmd_args(int argc, char **argv, program_config &config) {
                              }
                              return true;
                            },
-                           true});
+                           false});
   options.push_back(
       commandline_argument{"--decoder", "-d",
                            [&](std::string s, program_config &c) {
@@ -82,17 +83,91 @@ int parse_cmd_args(int argc, char **argv, program_config &config) {
                              }
                              return true;
                            },
-                           true});
+                           false});
+  options.push_back(commandline_argument{
+      "--filter", "-f",
+      [&](std::string s, program_config &c) {
+        if (s == "RESIZE") {
+          c.operation = RESIZE;
+        } else if (s == "MONO") {
+          c.operation = MONO;
+        } else {
+          ERROR_LOG << s
+                    << " filter type is not supported. "
+                       "Available options are [RESIZE/MONO]";
+          return false;
+        }
+        return true;
+      },
+      true});
+
+  options.push_back(commandline_argument{
+      "--height", "-h",
+      [&](std::string s, program_config &c) {
+        try {
+          int b = std::stoi(s);
+          c.height = b;
+        } catch (...) {
+          ERROR_LOG << "Expected a number for --height, but got " << s
+                    << " instead";
+          return false;
+        }
+        return true;
+      },
+      false});
+  options.push_back(commandline_argument{
+      "--input-width", "-iw",
+      [&](std::string s, program_config &c) {
+        try {
+          int b = std::stoi(s);
+          c.input_width = b;
+        } catch (...) {
+          ERROR_LOG << "Expected a number for --width, but got " << s
+                    << " instead";
+          return false;
+        }
+        return true;
+      },
+      true});
+  options.push_back(commandline_argument{
+      "--input-height", "-ih",
+      [&](std::string s, program_config &c) {
+        try {
+          int b = std::stoi(s);
+          c.input_height = b;
+        } catch (...) {
+          ERROR_LOG << "Expected a number for --width, but got " << s
+                    << " instead";
+          return false;
+        }
+        return true;
+      },
+      true});
+  options.push_back(commandline_argument{
+      "--width", "-w",
+      [&](std::string s, program_config &c) {
+        try {
+          int b = std::stoi(s);
+          c.width = b;
+        } catch (...) {
+          ERROR_LOG << "Expected a number for --width, but got " << s
+                    << " instead";
+          return false;
+        }
+        return true;
+      },
+      false});
 
   try {
-    for (int i = 1; i < argc + 1; i += 2) {
+    for (int i = 1; i + 1 < argc; i += 2) {
       std::string arg = argv[i];
       for (int j = 0; j < options.size(); j++) {
         if (options[j].arg == arg || options[j].arg_short == arg) {
-          if (options[j].f(argv[i + 1], config) != 0)
+          if (options[j].f(argv[i + 1], config) != 1) {
+            ERROR_LOG << "Error setting the option";
             return -1;
+          }
           options.erase(options.begin() + j, options.begin() + j + 1);
-          ERROR_LOG << options.size();
           break;
         }
       }

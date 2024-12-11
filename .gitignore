@@ -5,3 +5,7 @@ opencv
 .vscode
 .cache
 test_resources/
+bin
+lib
+lib64
+share

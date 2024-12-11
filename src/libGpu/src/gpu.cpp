@@ -1,3 +1,4 @@
+#include "argparse.hpp"
 #include <chrono>
 #include <common.h>
 #include <cstdlib>
@@ -32,9 +33,10 @@ void gpu::gpu(Video video) {
   video.displayFrame(concatenatedFrame);
 }
 
-void gpu::gpu(Video video, std::string operation, int batch_size) {
-  int dst_width = 640;
-  int dst_height = 480;
+void gpu::gpu(Video video, utill::filter operation, int batch_size,
+              std::string out, int width, int height) {
+  int dst_width = width;
+  int dst_height = height;
 
   double fps = video.getVideoCapture().get(cv::CAP_PROP_FPS);
   int frame_count =
@@ -50,7 +52,7 @@ void gpu::gpu(Video video, std::string operation, int batch_size) {
   auto capture = video.getVideoCapture();
   capture.set(cv::CAP_PROP_POS_FRAMES, 0);
 
-  if (operation == "resize") {
+  if (operation == utill::RESIZE) {
     uint8_t *src_buffer;
     uint8_t *dst_buffer;
     gpu::malloc_memory(&src_buffer, (sizeof(uint8_t) * size.height *
@@ -68,9 +70,9 @@ void gpu::gpu(Video video, std::string operation, int batch_size) {
     uint8_t *resized_batch_buffer =
         new uint8_t[batch_size * dst_height * dst_width * 3 * sizeof(uint8_t)];
 
-    cv::VideoWriter videoWriter("output_video.mp4",
-                                cv::VideoWriter::fourcc('X', '2', '6', '4'),
-                                fps, cv::Size(dst_width, dst_height));
+    // cv::VideoWriter videoWriter(out,
+    //                             cv::VideoWriter::fourcc('X', '2', '6', '4'),
+    //                             fps, cv::Size(dst_width, dst_height));
 
     cv::Ptr<cv::cudacodec::VideoWriter> cudaVideoWriter;
     cv::Ptr<cv::cudacodec::VideoReader> cudaVideoReader;
@@ -83,9 +85,14 @@ void gpu::gpu(Video video, std::string operation, int batch_size) {
 
       read_time += utill::silent_benchmark([&]() {
         for (int j = 0; j < current_batch_size; ++j) {
-          capture >> frame;
-          std::memcpy(batch_buffer + j * frame_mem_size, frame.data,
-                      frame_mem_size);
+          cv::cuda::GpuMat gpu_frame;
+          cudaVideoReader->nextFrame(gpu_frame);
+          gpu::copyDeviceDevice(gpu_frame.data, src_buffer + j * frame_mem_size,
+                                frame_mem_size);
+          // HERE
+          // capture >> frame;
+          // std::memcpy(batch_buffer + j * frame_mem_size, frame.data,
+          //             frame_mem_size);
         }
       });
       total_time += utill::silent_benchmark([&]() {
@@ -96,7 +103,8 @@ void gpu::gpu(Video video, std::string operation, int batch_size) {
       write_time += utill::silent_benchmark([&]() {
         if (!cudaVideoWriter) {
           cudaVideoWriter = cv::cudacodec::createVideoWriter(
-              "output.mp4", cv::Size(dst_width, dst_height),
+              out, cv::Size(dst_width, dst_height),
+
               cv::cudacodec::H264, fps);
         }
         if (!cudaVideoWriter) {
@@ -115,25 +123,28 @@ void gpu::gpu(Video video, std::string operation, int batch_size) {
     gpu::free_memory(src_buffer);
     gpu::free_memory(dst_buffer);
     // videoWriter.release();
-  } else if (operation == "mono") {
+  } else if (operation == utill::MONO) {
     uint8_t *buffer;
     gpu::malloc_memory(&buffer, (frame_mem_size * batch_size));
     // int frame_mem_size = size.height * size.width * 3 * sizeof(uint8_t);
-    uint8_t *batch_buffer = new uint8_t[batch_size * frame_mem_size];
+    uint8_t *batch_buffer;
+    gpu::malloc_memory(&batch_buffer, (frame_mem_size * batch_size));
 
-    cv::VideoWriter videoWriter("output_video.mp4",
-                                cv::VideoWriter::fourcc('X', '2', '6', '4'),
-                                fps, size);
     cv::Ptr<cv::cudacodec::VideoWriter> cudaVideoWriter;
+    cv::Ptr<cv::cudacodec::VideoReader> cudaVideoReader;
+    cudaVideoReader = cv::cudacodec::createVideoReader(video.filePath);
+
     for (int i = 0; i < frame_count; i += batch_size) {
       INFO_LOG << "Frames " << i << "/" << frame_count;
       int current_batch_size = std::min(batch_size, frame_count - i);
 
       read_time += utill::silent_benchmark([&]() {
         for (int j = 0; j < current_batch_size; ++j) {
-          capture >> frame;
-          std::memcpy(batch_buffer + j * frame_mem_size, frame.data,
-                      frame_mem_size);
+          cv::cuda::GpuMat gpu_frame;
+          cudaVideoReader->nextFrame(gpu_frame);
+          gpu::copyDeviceDevice(gpu_frame.data,
+                                batch_buffer + j * frame_mem_size,
+                                frame_mem_size);
         }
       });
 
@@ -146,27 +157,21 @@ void gpu::gpu(Video video, std::string operation, int batch_size) {
         for (int j = 0; j < current_batch_size; ++j) {
           if (!cudaVideoWriter) {
             cudaVideoWriter = cv::cudacodec::createVideoWriter(
-                "output.mp4", cv::Size(size.width, size.height),
-                cv::cudacodec::H264, fps);
+                out, cv::Size(size.width, size.height), cv::cudacodec::H264,
+                fps);
           }
           if (!cudaVideoWriter) {
             ERROR_LOG << "Could not create CUDA Video Writer";
           }
 
-          // cv::cuda::GpuMat resized_frame(dst_height, dst_width, CV_8UC3,
-          //                                 dst_buffer +
-          //                                     j * dst_height * dst_width *
-          //                                     3);
-          //
           cv::cuda::GpuMat processed_frame_gpu(size.height, size.width, CV_8UC3,
                                                buffer + j * frame_mem_size);
           cudaVideoWriter->write(processed_frame_gpu);
         }
       });
     }
-    delete[] batch_buffer;
+    gpu::free_memory(batch_buffer);
     gpu::free_memory(buffer);
-    videoWriter.release();
   }
   LOG(LEVEL_LOG) << "Decoding time " << read_time << "ms";
   LOG(LEVEL_LOG) << "Processing time " << total_time << "ms";

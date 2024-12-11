@@ -43,8 +43,6 @@ void gpu::bgr_to_mono(uint8_t *frames, int batch_size, int height, int width,
   int frame_size = sizeof(uint8_t) * width * height * 3;
   int total_size = frame_size * batch_size;
 
-  cudaMemcpy(buffer, frames, total_size,
-             cudaMemcpyKind::cudaMemcpyHostToDevice);
   for (int i = 0; i < batch_size; i++) {
     uint8_t *frame_ptr = buffer + i * frame_size;
     dim3 block(16, 16);
@@ -66,7 +64,7 @@ void gpu::resize(uint8_t *frames, int batch_size, int src_height, int src_width,
   int frame_size = sizeof(uint8_t) * src_width * src_height * 3;
   int resized_frame_size = sizeof(uint8_t) * dst_width * dst_height * 3;
   int total_size = frame_size * batch_size;
-  cudaMemcpy(src_buffer, frames, total_size, cudaMemcpyHostToDevice);
+  // cudaMemcpy(src_buffer, frames, total_size, cudaMemcpyHostToDevice);
 
   for (int i = 0; i < batch_size; i++) {
     uint8_t *src_frame = src_buffer + i * frame_size;

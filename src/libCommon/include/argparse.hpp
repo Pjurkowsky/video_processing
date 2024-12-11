@@ -1,3 +1,4 @@
+#pragma once
 #include <functional>
 #include <string>
 namespace utill {
@@ -16,6 +17,10 @@ struct program_config {
   encoder_type encoder;
   filter operation;
   int batch_size;
+  int width;
+  int height;
+  int input_width;
+  int input_height;
 };
 
 struct commandline_argument {
